@@ -19,6 +19,7 @@ Thumbs.db
 
 # Extra
 plans/
+.memex/
 
 # Logs
 *.log
