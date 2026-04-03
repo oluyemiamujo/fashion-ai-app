@@ -29,7 +29,7 @@ from api.annotations import router as annotations_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Create DB tables (+ pgvector extension) on startup."""
+    """Create SQLite tables on startup."""
     create_tables()
     yield
 

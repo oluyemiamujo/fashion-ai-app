@@ -1,10 +1,9 @@
 """
 SQLAlchemy ORM models for Garment and Annotation.
-pgvector is used for the embedding column.
+Embeddings are stored as JSON arrays (list[float]) in SQLite.
 """
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
-from pgvector.sqlalchemy import Vector
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON
 from database import Base
 
 
@@ -38,8 +37,9 @@ class Garment(Base):
     # Meta
     designer = Column(String, nullable=True)
 
-    # Vector embedding (OpenAI text-embedding-3-small = 1536 dims)
-    embedding = Column(Vector(1536), nullable=True)
+    # Embedding stored as a JSON array of floats (1536 dims for text-embedding-3-small).
+    # Cosine similarity is computed in Python at query time; see services/similarity.py.
+    embedding = Column(JSON, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
