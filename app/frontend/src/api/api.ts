@@ -257,7 +257,7 @@ export async function getImages(params?: SearchParams): Promise<Garment[]> {
       Object.entries(params ?? {}).forEach(([key, val]) => {
         if (!val || key === 'q') return
         results = results.filter(g => {
-          const field = (g as Record<string, unknown>)[key]
+          const field = (g as unknown as Record<string, unknown>)[key]
           if (key === 'continent' || key === 'country' || key === 'city') {
             return g.location[key as keyof Location]?.toLowerCase() === val.toLowerCase()
           }
@@ -304,44 +304,32 @@ export async function getFilters(): Promise<FilterOptions> {
   }
 }
 
-export interface UploadMetadata {
-  designer: string
-  continent: string
-  country: string
-  city: string
-  season: string
-  occasion: string
-  notes: string
-}
-
-export async function uploadImage(file: File, metadata?: Partial<UploadMetadata>): Promise<Garment> {
+/**
+ * Upload a single garment image.
+ * All metadata (description, type, style, material, colour palette, pattern,
+ * season, occasion, consumer profile, trend notes, and location context) is
+ * extracted automatically by the AI vision model — no form fields required.
+ */
+export async function uploadImage(file: File): Promise<Garment> {
   const form = new FormData()
-  form.append('file', file)
-  if (metadata) {
-    Object.entries(metadata).forEach(([k, v]) => { if (v) form.append(k, v) })
-  }
+  form.append('image', file)
   try {
     const { data } = await client.post<Garment>('/upload', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      // Vision classification can take several seconds — extend timeout
+      timeout: 60_000,
     })
     return data
   } catch (err) {
     if (isMockMode(err)) {
+      // Simulate processing delay in mock mode
+      await new Promise(r => setTimeout(r, 2000))
       const base = MOCK_GARMENTS[Math.floor(Math.random() * MOCK_GARMENTS.length)]
       return {
         ...base,
         id: `mock-${Date.now()}`,
         imageUrl: URL.createObjectURL(file),
         thumbnail: URL.createObjectURL(file),
-        designer: metadata?.designer || base.designer,
-        season: metadata?.season || base.season,
-        occasion: metadata?.occasion || base.occasion,
-        location: {
-          continent: metadata?.continent || base.location.continent,
-          country: metadata?.country || base.location.country,
-          city: metadata?.city || base.location.city,
-        },
-        notes: metadata?.notes ? [metadata.notes] : base.notes,
       }
     }
     throw err

@@ -1,15 +1,23 @@
 """
 POST /api/upload
 
-Accepts a multipart form with an image and optional metadata.
-Runs AI classification → parsing → embedding → DB insert.
+Accepts a single image file (multipart/form-data).
+All metadata is extracted automatically by the AI vision model —
+no manual form fields are required or accepted.
+
+Pipeline:
+  1. Validate & persist image to disk
+  2. AI vision classification (description + structured attributes)
+  3. Validate / normalise AI output
+  4. Generate semantic embedding from description
+  5. Store garment record in database
+  6. Return full garment metadata
 """
-import os
 import uuid
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -26,24 +34,20 @@ ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 
 @router.post("/upload")
 async def upload_image(
-    image: UploadFile = File(...),
-    designer: str = Form(default=""),
-    continent: str = Form(default=""),
-    country: str = Form(default=""),
-    city: str = Form(default=""),
-    season: str = Form(default=""),
-    occasion: str = Form(default=""),
-    notes: str = Form(default=""),
+    image: UploadFile = File(..., description="Garment image — JPEG, PNG, WEBP, or GIF."),
     db: Session = Depends(get_db),
 ):
     # ── 1. Validate file type ─────────────────────────────────────────────────
     if image.content_type not in ALLOWED_TYPES:
         raise HTTPException(
             status_code=415,
-            detail=f"Unsupported file type '{image.content_type}'. Allowed: JPEG, PNG, WEBP, GIF.",
+            detail=(
+                f"Unsupported file type '{image.content_type}'. "
+                "Accepted formats: JPEG, PNG, WEBP, GIF."
+            ),
         )
 
-    # ── 2. Save file locally ──────────────────────────────────────────────────
+    # ── 2. Persist image to disk ──────────────────────────────────────────────
     ext = Path(image.filename or "upload.jpg").suffix or ".jpg"
     filename = f"{uuid.uuid4().hex}{ext}"
     save_path = UPLOAD_DIR / filename
@@ -51,42 +55,36 @@ async def upload_image(
         contents = await image.read()
         save_path.write_bytes(contents)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"File save failed: {exc}") from exc
+        raise HTTPException(status_code=500, detail=f"Image save failed: {exc}") from exc
 
     image_url = f"/uploads/{filename}"
 
-    # ── 3. AI Classification ──────────────────────────────────────────────────
+    # ── 3. AI Vision classification ───────────────────────────────────────────
+    # The model returns a rich natural-language description AND all structured
+    # attributes. No user input supplements or overrides this output.
     try:
         raw_ai = classify_image(str(save_path))
     except Exception as exc:
         save_path.unlink(missing_ok=True)
-        raise HTTPException(status_code=502, detail=f"AI classification failed: {exc}") from exc
+        raise HTTPException(
+            status_code=502,
+            detail=f"AI classification failed: {exc}",
+        ) from exc
 
-    # ── 4. Parse & normalise AI output ────────────────────────────────────────
+    # ── 4. Validate & normalise AI output ─────────────────────────────────────
     metadata = parse_ai_response(raw_ai)
 
-    # User-supplied fields override AI inference where provided
-    if continent:
-        metadata["continent"] = continent
-    if country:
-        metadata["country"] = country
-    if city:
-        metadata["city"] = city
-    if season:
-        metadata["season"] = season
-    if occasion:
-        metadata["occasion"] = occasion
-    if notes:
-        metadata["trend_notes"] = notes
-
-    # ── 5. Generate embedding ─────────────────────────────────────────────────
+    # ── 5. Generate semantic embedding from description ───────────────────────
     embed_text = metadata.get("description", "")
     try:
         embedding = generate_embedding(embed_text) if embed_text else None
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Embedding generation failed: {exc}") from exc
+        raise HTTPException(
+            status_code=502,
+            detail=f"Embedding generation failed: {exc}",
+        ) from exc
 
-    # ── 6. Persist to database ────────────────────────────────────────────────
+    # ── 6. Persist garment record ─────────────────────────────────────────────
     now = datetime.utcnow()
     garment = Garment(
         image_url=image_url,
@@ -105,7 +103,7 @@ async def upload_image(
         city=metadata.get("city"),
         year=now.year,
         month=now.month,
-        designer=designer or None,
+        designer=None,          # extracted by AI if present on garment/label
         embedding=embedding,
         created_at=now,
     )
@@ -113,6 +111,7 @@ async def upload_image(
     db.commit()
     db.refresh(garment)
 
+    # ── 7. Return full garment metadata ───────────────────────────────────────
     return {
         "id": garment.id,
         "image_url": garment.image_url,

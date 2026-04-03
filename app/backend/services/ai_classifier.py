@@ -11,30 +11,40 @@ from openai import OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 SYSTEM_PROMPT = (
-    "You are a professional fashion analyst with deep expertise in global garment trends, "
-    "materials, and styling. Analyze the provided garment image and return ONLY a valid JSON "
-    "object — no markdown, no explanations."
+    "You are a senior fashion analyst and trend forecaster with deep expertise in global garment "
+    "design, textile science, cultural style geography, and runway-to-retail dynamics. "
+    "Your task is to examine the provided garment image with precision and return ONLY a valid "
+    "JSON object — no markdown fences, no explanatory text, no commentary outside the JSON."
 )
 
-USER_PROMPT = """Analyze this garment image and return a JSON object with exactly these keys:
+USER_PROMPT = """Examine this garment image in full detail and return a single JSON object with exactly these keys.
+
+IMPORTANT RULES:
+- "description" must be a rich, editorial-quality paragraph of 3–5 sentences. Cover silhouette, construction details, fabric drape, colour story, cultural or historical references, and how the piece might be worn or styled. Write as a fashion editor would for a magazine feature — not a product listing.
+- All other string values must be concise, specific, and lowercase (except proper nouns).
+- Never return null or empty strings. If something is genuinely uncertain, make the most informed inference possible and mark it with a trailing " (inferred)".
+- "color_palette" should name 1–4 dominant colours in natural descriptive language (e.g. "ivory, dusty rose, charcoal").
+- "consumer_profile" should describe the target wearer in one sentence: lifestyle, age range, sensibility.
+- "trend_notes" should connect the garment to current or emerging macro trends, cultural movements, or historical revival cycles — 2–3 sentences.
+- "continent", "country", "city" refer to the style origin or strongest cultural influence visible in the garment — not necessarily where the photo was taken.
 
 {
-  "description": "Detailed natural-language description of the garment",
-  "garment_type": "e.g. dress, jacket, trousers, shirt, skirt, coat, suit, accessories",
-  "style": "e.g. casual, formal, streetwear, bohemian, minimalist, avant-garde",
-  "material": "e.g. cotton, silk, denim, leather, wool, synthetic blend",
-  "color_palette": "e.g. monochrome black, earth tones, pastel pink and white",
-  "pattern": "e.g. solid, floral, striped, geometric, abstract, plaid",
-  "season": "e.g. spring/summer, autumn/winter, all-season",
-  "occasion": "e.g. everyday, workwear, evening, sportswear, beachwear",
-  "consumer_profile": "e.g. young professional, teen, luxury buyer, athleisure enthusiast",
-  "trend_notes": "Brief notes on current trend relevance or cultural influences",
-  "continent": "Inferred or likely continent of origin/style influence",
-  "country": "Inferred or likely country",
-  "city": "Inferred or likely city style influence, e.g. Paris, Tokyo, Milan"
+  "description": "<rich editorial paragraph>",
+  "garment_type": "<specific type: e.g. wrap dress, bomber jacket, wide-leg trousers, blazer, maxi skirt>",
+  "style": "<aesthetic category: e.g. minimalist, bohemian, streetwear, haute couture, utility, romantic>",
+  "material": "<primary fabric(s): e.g. silk charmeuse, heavyweight denim, boiled wool, technical nylon>",
+  "color_palette": "<1–4 named colours>",
+  "pattern": "<surface design: e.g. solid, houndstooth, digital floral print, tie-dye, jacquard>",
+  "season": "<one of: spring/summer | autumn/winter | resort | all-season>",
+  "occasion": "<primary use context: e.g. everyday, workwear, evening, beachwear, activewear, red carpet>",
+  "consumer_profile": "<one-sentence wearer portrait>",
+  "trend_notes": "<2–3 sentences on trend positioning>",
+  "continent": "<style-origin continent>",
+  "country": "<style-origin country>",
+  "city": "<style-origin city or fashion capital>"
 }
 
-Return ONLY the JSON. Do not wrap in markdown code blocks."""
+Return ONLY the JSON object. No markdown. No preamble."""
 
 
 def _encode_image(image_path: str) -> str:
@@ -77,8 +87,8 @@ def classify_image(image_path: str) -> dict:
                 ],
             },
         ],
-        max_tokens=1024,
-        temperature=0.2,
+        max_tokens=1500,
+        temperature=0.3,
     )
 
     raw = response.choices[0].message.content.strip()
