@@ -11,16 +11,30 @@ EXPECTED_KEYS: dict[str, Any] = {
     "material": "unknown",
     "color_palette": "unknown",
     "pattern": "unknown",
-    "season": "all-season",
-    "occasion": "everyday",
-    "consumer_profile": "general",
+    "season": "unknown",
+    "occasion": "unknown",
+    "consumer_profile": "unknown",
     "trend_notes": "",
     "continent": "unknown",
     "country": "unknown",
     "city": "unknown",
 }
 
-
+# EXPECTED_KEYS: dict[str, Any] = {
+#     "description": "",
+#     "garment_type": "unknown",
+#     "style": "unknown",
+#     "material": "unknown",
+#     "color_palette": "unknown",
+#     "pattern": "unknown",
+#     "season": "all-season",
+#     "occasion": "everyday",
+#     "consumer_profile": "general",
+#     "trend_notes": "",
+#     "continent": "unknown",
+#     "country": "unknown",
+#     "city": "unknown",
+# }
 def parse_ai_response(raw: dict) -> dict:
     """
     Validate and normalise the AI classifier output.
