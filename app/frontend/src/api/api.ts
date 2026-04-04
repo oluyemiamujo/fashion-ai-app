@@ -238,12 +238,60 @@ function isMockMode(err: unknown): boolean {
   return true
 }
 
+/**
+ * Map the raw backend response (flat snake_case fields, string color_palette)
+ * to the frontend Garment shape (nested location, ColorSwatch[] palette).
+ *
+ * The backend always returns flat fields like `city`, `continent`, `image_url`
+ * and `color_palette` as a comma-separated string.  This normaliser bridges
+ * that gap so every real-API path yields a correctly typed Garment.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normaliseGarment(raw: any): Garment {
+  // colour_palette: "ivory, dusty rose, charcoal"  →  ColorSwatch[]
+  const rawPalette: string = raw.color_palette ?? ''
+  const color_palette: ColorSwatch[] = rawPalette
+    .split(',')
+    .map((s: string) => s.trim())
+    .filter(Boolean)
+    .map((name: string) => ({ name, hex: '#888888' }))   // hex resolved by UI from name
+
+  const imageUrl: string = raw.image_url
+    ? `${raw.image_url}`          // keep relative path; Vite proxy serves /uploads
+    : raw.imageUrl ?? ''
+
+  return {
+    id:               String(raw.id),
+    imageUrl,
+    thumbnail:        imageUrl,
+    garment_type:     raw.garment_type ?? '',
+    style:            raw.style ?? '',
+    material:         raw.material ?? '',
+    color_palette,
+    pattern:          raw.pattern ?? '',
+    season:           raw.season ?? '',
+    occasion:         raw.occasion ?? '',
+    consumer_profile: raw.consumer_profile ?? '',
+    trend_notes:      raw.trend_notes ?? '',
+    description:      raw.description ?? '',
+    designer:         raw.designer ?? undefined,
+    tags:             raw.tags ?? [],
+    notes:            raw.notes ?? [],
+    location: {
+      continent: raw.continent ?? raw.location?.continent ?? '',
+      country:   raw.country   ?? raw.location?.country   ?? '',
+      city:      raw.city      ?? raw.location?.city      ?? '',
+    },
+  }
+}
+
 // ─── API Functions ────────────────────────────────────────────────────────────
 
 export async function getImages(params?: SearchParams): Promise<Garment[]> {
   try {
-    const { data } = await client.get<Garment[]>('/images', { params })
-    return data
+    const { data } = await client.get<any>('/images', { params })
+    const results = Array.isArray(data) ? data : (data.results ?? [])
+    return results.map(normaliseGarment)
   } catch (err) {
     if (isMockMode(err)) {
       let results = [...MOCK_GARMENTS]
@@ -272,8 +320,8 @@ export async function getImages(params?: SearchParams): Promise<Garment[]> {
 
 export async function getImageDetails(id: string): Promise<Garment> {
   try {
-    const { data } = await client.get<Garment>(`/images/${id}`)
-    return data
+    const { data } = await client.get<any>(`/images/${id}`)
+    return normaliseGarment(data)
   } catch (err) {
     if (isMockMode(err)) {
       const garment = MOCK_GARMENTS.find(g => g.id === id)
@@ -286,8 +334,9 @@ export async function getImageDetails(id: string): Promise<Garment> {
 
 export async function searchImages(query: string): Promise<Garment[]> {
   try {
-    const { data } = await client.get<Garment[]>('/search', { params: { q: query } })
-    return data
+    const { data } = await client.get<any>('/search', { params: { q: query } })
+    const results = Array.isArray(data) ? data : (data.results ?? [])
+    return results.map(normaliseGarment)
   } catch (err) {
     if (isMockMode(err)) return getImages({ q: query })
     throw err
@@ -314,12 +363,12 @@ export async function uploadImage(file: File): Promise<Garment> {
   const form = new FormData()
   form.append('image', file)
   try {
-    const { data } = await client.post<Garment>('/upload', form, {
+    const { data } = await client.post<any>('/upload', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
       // Vision classification can take several seconds — extend timeout
       timeout: 60_000,
     })
-    return data
+    return normaliseGarment(data)
   } catch (err) {
     if (isMockMode(err)) {
       // Simulate processing delay in mock mode
