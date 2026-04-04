@@ -1,8 +1,10 @@
 """
-GET /api/images          – paginated list of latest garments
-GET /api/images/filter   – dynamic multi-attribute filter
-GET /api/images/{id}     – garment detail + annotations
+GET    /api/images          – paginated list of latest garments
+GET    /api/images/filter   – dynamic multi-attribute filter
+GET    /api/images/{id}     – garment detail + annotations
+DELETE /api/images/{id}     – remove garment, its annotations, and the image file
 """
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,6 +12,8 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Annotation, Garment
+
+UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
 
 router = APIRouter()
 
@@ -145,3 +149,33 @@ def get_image(garment_id: int, db: Session = Depends(get_db)):
         for a in annotations
     ]
     return result
+
+
+# ── DELETE /api/images/{id} ───────────────────────────────────────────────────
+
+@router.delete("/images/{garment_id}", status_code=200)
+def delete_image(garment_id: int, db: Session = Depends(get_db)):
+    """
+    Permanently remove a garment record, all its annotations, and the
+    associated image file from disk.
+    """
+    garment = db.query(Garment).filter(Garment.id == garment_id).first()
+    if not garment:
+        raise HTTPException(status_code=404, detail="Garment not found.")
+
+    # ── 1. Delete annotations first (FK constraint) ──────────────────────────
+    db.query(Annotation).filter(Annotation.garment_id == garment_id).delete()
+
+    # ── 2. Resolve and remove image file from disk ───────────────────────────
+    # image_url is stored as "/uploads/<filename>"; strip the leading slash to
+    # build a path relative to UPLOAD_DIR.
+    if garment.image_url:
+        filename = garment.image_url.lstrip("/").removeprefix("uploads/")
+        image_path = UPLOAD_DIR / filename
+        image_path.unlink(missing_ok=True)
+
+    # ── 3. Remove the garment record ─────────────────────────────────────────
+    db.delete(garment)
+    db.commit()
+
+    return {"deleted": garment_id}

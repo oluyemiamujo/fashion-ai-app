@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import { getImages, filterImages, getFilters } from '../api/api'
 import type { Garment, FilterOptions, SearchParams } from '../api/api'
 import ImageGrid from '../components/ImageGrid'
@@ -7,6 +8,7 @@ import FiltersPanel from '../components/FiltersPanel'
 import UploadPanel from '../components/UploadPanel'
 
 export default function Home() {
+  const location = useLocation()
   const [garments, setGarments]             = useState<Garment[]>([])
   const [filters, setFilters]               = useState<FilterOptions | null>(null)
   const [selectedFilters, setSelectedFilters] = useState<Partial<SearchParams>>({})
@@ -14,9 +16,21 @@ export default function Home() {
   const [loadingImages, setLoadingImages]   = useState(true)
   const [loadingFilters, setLoadingFilters] = useState(true)
   const [showUpload, setShowUpload]         = useState(false)
+  const [deletedToast, setDeletedToast]     = useState(false)
 
   // Abort controller ref — cancels in-flight requests when params change
   const abortRef = useRef<AbortController | null>(null)
+
+  // Show a brief success toast when navigated back after a delete
+  useEffect(() => {
+    if ((location.state as { deleted?: string } | null)?.deleted) {
+      setDeletedToast(true)
+      const t = setTimeout(() => setDeletedToast(false), 4000)
+      // Clear router state so a back/forward re-visit doesn't re-trigger
+      window.history.replaceState({}, '')
+      return () => clearTimeout(t)
+    }
+  }, [location.state])
 
   // Load filter options once
   useEffect(() => {
@@ -91,10 +105,23 @@ export default function Home() {
     setShowUpload(false)
   }
 
+
+
   const activeFilterCount = Object.values(selectedFilters).filter(Boolean).length
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
+
+      {/* ── Deleted toast ──────────────────────────────────────────── */}
+      {deletedToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5
+                        px-5 py-3 rounded-2xl bg-gray-900 text-white text-sm shadow-xl animate-fade-in">
+          <svg className="w-4 h-4 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          Garment deleted successfully
+        </div>
+      )}
 
       {/* ── Top Navigation ─────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">

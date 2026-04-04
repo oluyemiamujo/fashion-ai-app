@@ -18,6 +18,14 @@ export interface Location {
   city: string
 }
 
+export interface Annotation {
+  id: number
+  garment_id: number
+  tag: string | null
+  note: string | null
+  created_at: string
+}
+
 export interface Garment {
   id: string
   imageUrl: string
@@ -36,6 +44,8 @@ export interface Garment {
   designer?: string
   tags?: string[]
   notes?: string[]
+  /** Full annotation objects, populated by getImageDetails() */
+  annotations?: Annotation[]
 }
 
 export interface FilterOptions {
@@ -338,6 +348,23 @@ function normaliseGarment(raw: any): Garment {
     ? `${raw.image_url}`          // keep relative path; Vite proxy serves /uploads
     : raw.imageUrl ?? ''
 
+  // ── Annotation hydration ────────────────────────────────────────────────────
+  // GET /api/images/{id} returns { annotations: [{ id, tag, note, created_at }] }
+  // We extract tags and notes from that array so the AnnotationPanel is
+  // correctly pre-populated after a page refresh.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawAnnotations: any[] = Array.isArray(raw.annotations) ? raw.annotations : []
+  const annotations: Annotation[] = rawAnnotations.map(a => ({
+    id:          a.id,
+    garment_id:  a.garment_id ?? parseInt(String(raw.id), 10),
+    tag:         a.tag  ?? null,
+    note:        a.note ?? null,
+    created_at:  a.created_at ?? '',
+  }))
+  // Flatten to the string arrays the AnnotationPanel expects
+  const tags  = annotations.map(a => a.tag).filter((t): t is string => Boolean(t))
+  const notes = annotations.map(a => a.note).filter((n): n is string => Boolean(n))
+
   return {
     id:               String(raw.id),
     imageUrl,
@@ -353,8 +380,9 @@ function normaliseGarment(raw: any): Garment {
     trend_notes:      raw.trend_notes ?? '',
     description:      raw.description ?? '',
     designer:         raw.designer ?? undefined,
-    tags:             raw.tags ?? [],
-    notes:            raw.notes ?? [],
+    tags,
+    notes,
+    annotations,
     location: {
       continent: raw.continent ?? raw.location?.continent ?? '',
       country:   raw.country   ?? raw.location?.country   ?? '',
@@ -517,16 +545,49 @@ export async function addAnnotation(
   id: string,
   note: string,
   tag: string
-): Promise<{ success: boolean }> {
+): Promise<Annotation> {
   // Backend AnnotationCreate expects { garment_id: int, tag: str, note: str }
   // The frontend Garment.id is a string; cast to int before sending.
   const garment_id = parseInt(id, 10)
   if (isNaN(garment_id)) throw new Error(`Invalid garment id: "${id}"`)
   try {
-    const { data } = await client.post(`/annotations`, { garment_id, note, tag })
+    const { data } = await client.post<Annotation>(`/annotations`, { garment_id, note, tag })
     return data
   } catch (err) {
-    if (isMockMode(err)) return { success: true }
+    if (isMockMode(err)) {
+      return {
+        id: Date.now(),
+        garment_id,
+        tag: tag || null,
+        note: note || null,
+        created_at: new Date().toISOString(),
+      }
+    }
+    throw err
+  }
+}
+
+/** Fetch all annotations for a garment by id. */
+export async function getAnnotations(id: string): Promise<Annotation[]> {
+  const garment_id = parseInt(id, 10)
+  if (isNaN(garment_id)) throw new Error(`Invalid garment id: "${id}"`)
+  try {
+    const { data } = await client.get<Annotation[]>(`/annotations/${garment_id}`)
+    return Array.isArray(data) ? data : []
+  } catch (err) {
+    if (isMockMode(err)) return []
+    throw err
+  }
+}
+
+/** Permanently delete a garment and all its annotations. */
+export async function deleteImage(id: string): Promise<void> {
+  const garment_id = parseInt(id, 10)
+  if (isNaN(garment_id)) throw new Error(`Invalid garment id: "${id}"`)
+  try {
+    await client.delete(`/images/${garment_id}`)
+  } catch (err) {
+    if (isMockMode(err)) return   // no-op in mock mode
     throw err
   }
 }
