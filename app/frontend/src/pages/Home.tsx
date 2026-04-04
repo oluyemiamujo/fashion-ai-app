@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react'
-import { getImages, searchImages, getFilters } from '../api/api'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { getImages, filterImages, getFilters } from '../api/api'
 import type { Garment, FilterOptions, SearchParams } from '../api/api'
 import ImageGrid from '../components/ImageGrid'
 import SearchBar from '../components/SearchBar'
@@ -7,13 +7,16 @@ import FiltersPanel from '../components/FiltersPanel'
 import UploadPanel from '../components/UploadPanel'
 
 export default function Home() {
-  const [garments, setGarments] = useState<Garment[]>([])
-  const [filters, setFilters] = useState<FilterOptions | null>(null)
+  const [garments, setGarments]             = useState<Garment[]>([])
+  const [filters, setFilters]               = useState<FilterOptions | null>(null)
   const [selectedFilters, setSelectedFilters] = useState<Partial<SearchParams>>({})
-  const [searchQuery, setSearchQuery] = useState('')
-  const [loadingImages, setLoadingImages] = useState(true)
+  const [searchQuery, setSearchQuery]       = useState('')
+  const [loadingImages, setLoadingImages]   = useState(true)
   const [loadingFilters, setLoadingFilters] = useState(true)
-  const [showUpload, setShowUpload] = useState(false)
+  const [showUpload, setShowUpload]         = useState(false)
+
+  // Abort controller ref — cancels in-flight requests when params change
+  const abortRef = useRef<AbortController | null>(null)
 
   // Load filter options once
   useEffect(() => {
@@ -22,35 +25,67 @@ export default function Home() {
       .finally(() => setLoadingFilters(false))
   }, [])
 
-  // Reload images whenever search query or filters change
-  const fetchImages = useCallback((query: string, filters: Partial<SearchParams>) => {
-    setLoadingImages(true)
-    const load = query
-      ? searchImages(query)
-      : getImages(Object.keys(filters).length ? filters : undefined)
-    load
-      .then(result => setGarments(Array.isArray(result) ? result : []))
-      .finally(() => setLoadingImages(false))
-  }, [])
+  /**
+   * Single unified fetch that merges free-text query + structured filters.
+   * - No params at all      → GET /api/images   (full list)
+   * - Filters only          → GET /api/images/filter  (AND logic)
+   * - Query only            → GET /api/search   (semantic, via filterImages)
+   * - Query + filters       → GET /api/images/filter  (combined AND, via filterImages)
+   */
+  const fetchImages = useCallback(
+    (query: string, activeFilters: Partial<SearchParams>) => {
+      // Cancel any previous in-flight fetch
+      abortRef.current?.abort()
+      abortRef.current = new AbortController()
 
+      setLoadingImages(true)
+
+      const hasQuery   = query.trim().length > 0
+      const filterKeys = Object.keys(activeFilters).filter(
+        k => activeFilters[k as keyof SearchParams]
+      )
+      const hasFilters = filterKeys.length > 0
+
+      const load: Promise<Garment[]> =
+        hasQuery || hasFilters
+          ? filterImages({ ...activeFilters, ...(hasQuery ? { q: query.trim() } : {}) })
+          : getImages()
+
+      load
+        .then(result => setGarments(Array.isArray(result) ? result : []))
+        .catch(err => {
+          // Ignore aborted requests
+          if (err?.code === 'ERR_CANCELED') return
+          console.error('Failed to load garments:', err)
+          setGarments([])
+        })
+        .finally(() => setLoadingImages(false))
+    },
+    []
+  )
+
+  // Re-fetch whenever the search query or filter selection changes
   useEffect(() => {
     fetchImages(searchQuery, selectedFilters)
   }, [searchQuery, selectedFilters, fetchImages])
 
+  // Search updates query; filters are preserved so they work together
   function handleSearch(q: string) {
     setSearchQuery(q)
-    setSelectedFilters({})       // filters reset when a new search runs
   }
 
+  // Clear resets everything
   function handleClear() {
     setSearchQuery('')
     setSelectedFilters({})
   }
 
+  // Filter change preserves current search query
   function handleFilterChange(f: Partial<SearchParams>) {
     setSelectedFilters(f)
   }
 
+  // Prepend newly uploaded garment and close the panel
   function handleUploadSuccess(garment: Garment) {
     setGarments(prev => [garment, ...(Array.isArray(prev) ? prev : [])])
     setShowUpload(false)

@@ -1,4 +1,4 @@
-import { useState, useRef, type FormEvent, type KeyboardEvent } from 'react'
+import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent } from 'react'
 
 interface Props {
   onSearch: (query: string) => void
@@ -15,14 +15,40 @@ const SUGGESTIONS = [
   'resort linen kaftan',
 ]
 
+/** Debounce delay in ms before live-search fires while the user is typing */
+const DEBOUNCE_MS = 400
+
 export default function SearchBar({ onSearch, onClear, initialValue = '', loading = false }: Props) {
-  const [value, setValue]   = useState(initialValue)
+  const [value, setValue]     = useState(initialValue)
   const [focused, setFocused] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef   = useRef<HTMLInputElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Keep local value in sync when the parent resets initialValue (e.g. on clear)
+  useEffect(() => {
+    setValue(initialValue)
+  }, [initialValue])
+
+  function fireSearch(q: string) {
+    if (q.trim()) {
+      onSearch(q.trim())
+    } else {
+      onClear()
+    }
+  }
+
+  function handleChange(val: string) {
+    setValue(val)
+    // Debounce: cancel the previous timer and schedule a new one
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => fireSearch(val), DEBOUNCE_MS)
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (value.trim()) onSearch(value.trim())
+    // Immediate submit — cancel any pending debounce
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    fireSearch(value)
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -30,12 +56,14 @@ export default function SearchBar({ onSearch, onClear, initialValue = '', loadin
   }
 
   function clear() {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
     setValue('')
     onClear()
     inputRef.current?.focus()
   }
 
   function applySuggestion(s: string) {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
     setValue(s)
     onSearch(s)
     setFocused(false)
@@ -64,7 +92,7 @@ export default function SearchBar({ onSearch, onClear, initialValue = '', loadin
           ref={inputRef}
           type="text"
           value={value}
-          onChange={e => setValue(e.target.value)}
+          onChange={e => handleChange(e.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 150)}
           onKeyDown={handleKeyDown}

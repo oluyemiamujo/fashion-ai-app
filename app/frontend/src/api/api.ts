@@ -57,6 +57,7 @@ export interface SearchParams {
   garment_type?: string
   style?: string
   material?: string
+  color_palette?: string
   pattern?: string
   season?: string
   occasion?: string
@@ -337,6 +338,56 @@ export async function searchImages(query: string): Promise<Garment[]> {
     return results.map(normaliseGarment)
   } catch (err) {
     if (isMockMode(err)) return getImages({ q: query })
+    throw err
+  }
+}
+
+/**
+ * Unified search+filter call.
+ * Hits /api/images/filter with any combination of text query and/or
+ * structured filter params. The backend applies all non-null params as
+ * AND conditions so combining search text with dropdowns works correctly.
+ * Falls back to client-side mock filtering when the backend is unavailable.
+ */
+export async function filterImages(params: SearchParams): Promise<Garment[]> {
+  // If the only param is a free-text query, delegate to the semantic search
+  // endpoint which uses embeddings. Otherwise hit the structured filter route.
+  const filterKeys = Object.keys(params).filter(k => k !== 'q' && params[k as keyof SearchParams])
+  const hasFilters = filterKeys.length > 0
+  const hasQuery   = Boolean(params.q)
+
+  if (hasQuery && !hasFilters) {
+    return searchImages(params.q!)
+  }
+
+  try {
+    // /api/images/filter accepts all SearchParams fields as query params
+    const { data } = await client.get<any>('/images/filter', { params })
+    const results = Array.isArray(data) ? data : (data.results ?? [])
+    return results.map(normaliseGarment)
+  } catch (err) {
+    if (isMockMode(err)) {
+      // Client-side mock: apply text search then structured filters
+      let results = [...MOCK_GARMENTS]
+      if (hasQuery) {
+        const q = params.q!.toLowerCase()
+        results = results.filter(g =>
+          [g.garment_type, g.style, g.material, g.pattern, g.description, ...(g.tags ?? [])]
+            .join(' ').toLowerCase().includes(q)
+        )
+      }
+      filterKeys.forEach(key => {
+        const val = (params as Record<string, string>)[key]?.toLowerCase()
+        if (!val) return
+        results = results.filter(g => {
+          if (key === 'continent' || key === 'country' || key === 'city') {
+            return g.location[key as keyof Location]?.toLowerCase() === val
+          }
+          return String((g as unknown as Record<string, unknown>)[key]).toLowerCase() === val
+        })
+      })
+      return results
+    }
     throw err
   }
 }
