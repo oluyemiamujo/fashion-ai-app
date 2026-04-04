@@ -24,6 +24,8 @@ function SkeletonCard() {
 }
 
 export default function ImageGrid({ garments, loading }: Props) {
+  const safeGarments = Array.isArray(garments) ? garments : []
+
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -32,7 +34,7 @@ export default function ImageGrid({ garments, loading }: Props) {
     )
   }
 
-  if (garments.length === 0) {
+  if (safeGarments.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
@@ -49,7 +51,7 @@ export default function ImageGrid({ garments, loading }: Props) {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-      {garments.map(garment => (
+      {safeGarments.map(garment => (
         <ImageCard key={garment.id} garment={garment} />
       ))}
     </div>

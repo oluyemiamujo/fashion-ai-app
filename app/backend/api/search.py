@@ -1,15 +1,23 @@
 """
 GET /api/search?q=...
 
-Converts the query string to an embedding, then performs
-pgvector cosine-distance similarity search against stored garment embeddings.
+Converts the query string to an embedding, then scores every garment in the
+database using cosine similarity computed in Python.
+
+For simplicity and ease of local setup, embeddings are stored in SQLite and
+semantic search is implemented using cosine similarity in Python. In a
+production system, a vector database such as PostgreSQL with pgvector would
+be used.
+
+Design note: With a small dataset (50–100 garments) loading all embeddings
+into memory at query time is acceptable; no SQL vector extension is required.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import get_db
-from services import generate_embedding
+from models import Garment
+from services import generate_embedding, cosine_similarity
 
 router = APIRouter()
 
@@ -21,63 +29,54 @@ def search_images(
     db: Session = Depends(get_db),
 ):
     """
-    Semantic vector search.
-    Returns garments ordered by cosine similarity to the query embedding.
+    Semantic search using cosine similarity.
+    Returns garments ordered by descending similarity to the query embedding.
     """
-    # 1. Generate query embedding
+    # 1. Convert query to embedding
     try:
         query_embedding = generate_embedding(q)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Embedding failed: {exc}") from exc
 
-    # 2. pgvector cosine distance search
-    # <=> operator = cosine distance (lower = more similar)
-    sql = text("""
-        SELECT
-            id, image_url, description,
-            garment_type, style, material, color_palette, pattern,
-            season, occasion, consumer_profile, trend_notes,
-            continent, country, city, year, month, designer, created_at,
-            embedding <=> CAST(:query_vec AS vector) AS distance
-        FROM garments
-        WHERE embedding IS NOT NULL
-        ORDER BY distance ASC
-        LIMIT :limit
-    """)
+    # 2. Load all garments that have a stored embedding.
+    #    For a small dataset (50–100 items) this is perfectly acceptable in memory.
+    garments = db.query(Garment).filter(Garment.embedding.isnot(None)).all()
 
-    rows = db.execute(
-        sql,
+    # 3. Score each garment against the query embedding
+    scored = []
+    for garment in garments:
+        score = cosine_similarity(query_embedding, garment.embedding)
+        scored.append((garment, score))
+
+    # 4. Sort by descending similarity and keep the top `limit` results
+    scored.sort(key=lambda x: x[1], reverse=True)
+    top = scored[:limit]
+
+    # 5. Serialise results
+    results = [
         {
-            "query_vec": str(query_embedding),   # pgvector accepts "[f1,f2,...]" string
-            "limit": limit,
-        },
-    ).fetchall()
-
-    results = []
-    for row in rows:
-        results.append(
-            {
-                "id": row.id,
-                "image_url": row.image_url,
-                "description": row.description,
-                "garment_type": row.garment_type,
-                "style": row.style,
-                "material": row.material,
-                "color_palette": row.color_palette,
-                "pattern": row.pattern,
-                "season": row.season,
-                "occasion": row.occasion,
-                "consumer_profile": row.consumer_profile,
-                "trend_notes": row.trend_notes,
-                "continent": row.continent,
-                "country": row.country,
-                "city": row.city,
-                "year": row.year,
-                "month": row.month,
-                "designer": row.designer,
-                "created_at": row.created_at.isoformat() if row.created_at else None,
-                "similarity_score": round(1 - float(row.distance), 4),
-            }
-        )
+            "id": g.id,
+            "image_url": g.image_url,
+            "description": g.description,
+            "garment_type": g.garment_type,
+            "style": g.style,
+            "material": g.material,
+            "color_palette": g.color_palette,
+            "pattern": g.pattern,
+            "season": g.season,
+            "occasion": g.occasion,
+            "consumer_profile": g.consumer_profile,
+            "trend_notes": g.trend_notes,
+            "continent": g.continent,
+            "country": g.country,
+            "city": g.city,
+            "year": g.year,
+            "month": g.month,
+            "designer": g.designer,
+            "created_at": g.created_at.isoformat() if g.created_at else None,
+            "similarity_score": round(score, 4),
+        }
+        for g, score in top
+    ]
 
     return {"query": q, "results": results}

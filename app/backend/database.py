@@ -1,16 +1,20 @@
 """
 Database connection and session management.
+
+For simplicity and ease of local setup, embeddings are stored in SQLite and
+semantic search is implemented using cosine similarity in Python. In a
+production system, a vector database such as PostgreSQL with pgvector would
+be used.
 """
-import os
-from dotenv import load_dotenv
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-load_dotenv()
+DATABASE_URL = "sqlite:///./fashion_ai.db"
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/fashion_ai")
-
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False},
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -25,8 +29,5 @@ def get_db():
 
 
 def create_tables():
-    """Create all tables and enable pgvector extension."""
-    with engine.connect() as conn:
-        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        conn.commit()
+    """Create all SQLite tables on startup."""
     Base.metadata.create_all(bind=engine)

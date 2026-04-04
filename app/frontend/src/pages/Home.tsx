@@ -28,7 +28,9 @@ export default function Home() {
     const load = query
       ? searchImages(query)
       : getImages(Object.keys(filters).length ? filters : undefined)
-    load.then(setGarments).finally(() => setLoadingImages(false))
+    load
+      .then(result => setGarments(Array.isArray(result) ? result : []))
+      .finally(() => setLoadingImages(false))
   }, [])
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export default function Home() {
   }
 
   function handleUploadSuccess(garment: Garment) {
-    setGarments(prev => [garment, ...prev])
+    setGarments(prev => [garment, ...(Array.isArray(prev) ? prev : [])])
     setShowUpload(false)
   }
 
