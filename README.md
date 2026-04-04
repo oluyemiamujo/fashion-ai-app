@@ -124,6 +124,8 @@ PostgreSQL + pgvector
 Image Storage
 ```
 
+
+
 ### Frontend
 
 React + TypeScript + TailwindCSS
@@ -149,8 +151,10 @@ FastAPI service responsible for:
 
 ### Database
 
-PostgreSQL stores:
-
+<!-- PostgreSQL stores: -->
+The project defaults to SQLite for easy local setup.
+PostgreSQL + pgvector can be enabled by updating DATABASE_URL.
+SQLite stores
 * garment metadata
 * annotations
 * embeddings

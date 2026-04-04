@@ -11,6 +11,7 @@ Resilience strategy
 * The caller (upload.py) maps AIServiceError → HTTP 502 and never lets
   an unhandled exception bubble to the ASGI layer.
 """
+from dotenv import load_dotenv
 import base64
 import json
 import logging
@@ -34,6 +35,8 @@ from tenacity import (
 )
 
 logger = logging.getLogger(__name__)
+
+load_dotenv(override=True)
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 

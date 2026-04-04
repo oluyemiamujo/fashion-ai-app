@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import type { FilterOptions, SearchParams } from '../api/api'
 
 interface Props {
@@ -67,7 +66,6 @@ function FilterSelect({
 }
 
 export default function FiltersPanel({ filters, selectedFilters, onChange, loading }: Props) {
-  const [open, setOpen] = useState(true)
 
   const activeCount = Object.values(selectedFilters).filter(Boolean).length
 
@@ -98,21 +96,14 @@ export default function FiltersPanel({ filters, selectedFilters, onChange, loadi
     <div>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={() => setOpen(o => !o)}
-          className="flex items-center gap-2 font-semibold text-gray-800 text-sm"
-        >
-          <svg className={`w-4 h-4 transition-transform ${open ? 'rotate-0' : '-rotate-90'}`}
-            fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+        <span className="flex items-center gap-2 font-semibold text-gray-800 text-sm">
           Filters
           {activeCount > 0 && (
             <span className="ml-1 text-xs font-bold px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700">
               {activeCount}
             </span>
           )}
-        </button>
+        </span>
 
         {activeCount > 0 && (
           <button
@@ -124,23 +115,21 @@ export default function FiltersPanel({ filters, selectedFilters, onChange, loadi
         )}
       </div>
 
-      {open && (
-        <div className="space-y-4">
-          {FILTER_ORDER.map(key => {
-            const opts = filters[key as FilterKey]
-            if (!opts?.length) return null
-            return (
-              <FilterSelect
-                key={key}
-                label={FILTER_LABELS[key] ?? key}
-                options={opts}
-                value={(selectedFilters as Record<string, string>)[key] ?? ''}
-                onChange={v => handleChange(key as FilterKey, v)}
-              />
-            )
-          })}
-        </div>
-      )}
+      <div className="space-y-4">
+        {FILTER_ORDER.map(key => {
+          const opts = filters[key as FilterKey]
+          if (!opts?.length) return null
+          return (
+            <FilterSelect
+              key={key}
+              label={FILTER_LABELS[key] ?? key}
+              options={opts}
+              value={(selectedFilters as Record<string, string>)[key] ?? ''}
+              onChange={v => handleChange(key as FilterKey, v)}
+            />
+          )
+        })}
+      </div>
     </div>
   )
 }

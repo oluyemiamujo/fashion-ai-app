@@ -9,6 +9,7 @@ Resilience strategy
 * Non-retryable failures surface as AIServiceError for a consistent
   contract with callers.
 """
+from dotenv import load_dotenv
 import logging
 import os
 
@@ -30,6 +31,7 @@ from tenacity import (
 
 from services.ai_classifier import AIServiceError
 
+load_dotenv(override=True)
 logger = logging.getLogger(__name__)
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
