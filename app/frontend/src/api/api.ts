@@ -232,10 +232,8 @@ const MOCK_FILTERS: FilterOptions = {
 // ─── API helpers ──────────────────────────────────────────────────────────────
 
 function isMockMode(err: unknown): boolean {
-  if (err instanceof AxiosError) {
-    return !err.response || err.code === 'ECONNREFUSED' || err.response.status >= 500
-  }
-  return true
+  if (!(err instanceof AxiosError)) return false   // JS errors must surface, not fall back to mock
+  return !err.response || err.code === 'ECONNREFUSED' || err.response.status === 503
 }
 
 /**
