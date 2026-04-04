@@ -1,14 +1,51 @@
 """
 AI garment classification using OpenAI Vision (gpt-4o).
+
+Resilience strategy
+-------------------
+* Up to 3 attempts with exponential back-off (2 s → 8 s) on transient
+  OpenAI errors: RateLimitError, APITimeoutError, InternalServerError,
+  APIConnectionError.
+* Non-retryable errors (AuthenticationError, bad JSON, etc.) surface
+  immediately as AIServiceError so callers receive a consistent contract.
+* The caller (upload.py) maps AIServiceError → HTTP 502 and never lets
+  an unhandled exception bubble to the ASGI layer.
 """
 import base64
 import json
+import logging
 import os
 from pathlib import Path
 
-from openai import OpenAI
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    AuthenticationError,
+    InternalServerError,
+    OpenAI,
+    RateLimitError,
+)
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+    before_sleep_log,
+)
+
+logger = logging.getLogger(__name__)
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# ── Custom exception ──────────────────────────────────────────────────────────
+
+class AIServiceError(Exception):
+    """Raised when the AI classification pipeline fails unrecoverably."""
+
+
+# ── Transient errors that are safe to retry ───────────────────────────────────
+
+_RETRYABLE = (RateLimitError, APITimeoutError, APIConnectionError, InternalServerError)
 
 SYSTEM_PROMPT = (
     "You are a senior fashion analyst and trend forecaster with deep expertise in global garment "
@@ -64,14 +101,21 @@ def _get_mime_type(image_path: str) -> str:
     }.get(suffix, "image/jpeg")
 
 
-def classify_image(image_path: str) -> dict:
-    """
-    Send a garment image to OpenAI Vision and return structured metadata as a dict.
-    Raises ValueError if the AI response cannot be parsed.
-    """
-    b64 = _encode_image(image_path)
-    mime = _get_mime_type(image_path)
+# ── Retryable OpenAI call ─────────────────────────────────────────────────────
 
+@retry(
+    retry=retry_if_exception_type(_RETRYABLE),
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=8),
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+    reraise=True,
+)
+def _call_openai_vision(b64: str, mime: str) -> str:
+    """
+    Make the OpenAI Vision API call.
+    Retried automatically on transient errors (rate-limit, timeout, server error).
+    Returns the raw content string from the model.
+    """
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
@@ -90,8 +134,32 @@ def classify_image(image_path: str) -> dict:
         max_tokens=1500,
         temperature=0.3,
     )
+    return response.choices[0].message.content.strip()
 
-    raw = response.choices[0].message.content.strip()
+
+# ── Public interface ──────────────────────────────────────────────────────────
+
+def classify_image(image_path: str) -> dict:
+    """
+    Classify a garment image with OpenAI Vision and return structured metadata.
+
+    Raises:
+        AIServiceError: on authentication failure, exhausted retries, or
+                        non-JSON model response — callers should not let this
+                        propagate further than the API route handler.
+    """
+    b64 = _encode_image(image_path)
+    mime = _get_mime_type(image_path)
+
+    try:
+        raw = _call_openai_vision(b64, mime)
+    except AuthenticationError as exc:
+        raise AIServiceError("OpenAI authentication failed — check OPENAI_API_KEY.") from exc
+    except _RETRYABLE as exc:
+        # All retries exhausted
+        raise AIServiceError(f"OpenAI Vision unavailable after retries: {exc}") from exc
+    except Exception as exc:
+        raise AIServiceError(f"Unexpected error during AI classification: {exc}") from exc
 
     # Strip accidental markdown fences
     if raw.startswith("```"):
@@ -103,4 +171,4 @@ def classify_image(image_path: str) -> dict:
     try:
         return json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise ValueError(f"AI returned non-JSON response: {raw[:200]}") from exc
+        raise AIServiceError(f"AI returned non-JSON response: {raw[:200]}") from exc
