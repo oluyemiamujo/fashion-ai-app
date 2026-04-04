@@ -238,6 +238,85 @@ function isMockMode(err: unknown): boolean {
 }
 
 /**
+ * Curated colour-name → hex map for the most common AI-extracted palette names.
+ * Keys are lowercase; matching is case-insensitive with a partial-substring
+ * fallback so "dusty rose" still hits "rose".
+ */
+const COLOR_MAP: Record<string, string> = {
+  // Neutrals
+  white: '#FFFFFF', ivory: '#FFFFF0', cream: '#FFFDD0', off_white: '#FAF9F6',
+  beige: '#F5F5DC', sand: '#E8C99A', linen: '#FAF0E6', parchment: '#F1E9D2',
+  oatmeal: '#E8DCC8', stone: '#BDB5A6', taupe: '#B09080', warm_taupe: '#C9B8A8',
+  mushroom: '#A8998A', greige: '#C4B9A8', ecru: '#C2B280',
+  silver: '#C0C0C0', grey: '#808080', gray: '#808080', charcoal: '#3C3C3C',
+  slate: '#708090', ash: '#B2BEB5', pewter: '#96A8A1',
+  black: '#0A0A0A',
+  // Browns
+  tan: '#D2B48C', camel: '#C19A6B', mocha: '#8B6F5E', chocolate: '#7B3F00',
+  espresso: '#4B2E2E', brown: '#A52A2A', rust: '#B7410E', terracotta: '#E2725B',
+  sienna: '#A0522D', tobacco: '#7A5230', cognac: '#9A4C28',
+  // Reds & Pinks
+  red: '#E53935', crimson: '#DC143C', scarlet: '#FF2400', burgundy: '#800020',
+  wine: '#722F37', maroon: '#800000', rose: '#FF007F', dusty_rose: '#DCAE96',
+  blush: '#FFB6C1', pink: '#FFC0CB', hot_pink: '#FF69B4', fuchsia: '#FF00FF',
+  coral: '#FF6B6B', salmon: '#FA8072', flamingo: '#FC8EAC',
+  // Oranges & Yellows
+  orange: '#FF8C00', amber: '#FFBF00', saffron: '#F6AE2D', mustard: '#FFDB58',
+  gold: '#FFD700', yellow: '#FFE066', lemon: '#FFF44F', butter: '#FFFACD',
+  ochre: '#CC7722', turmeric: '#C8962E',
+  // Greens
+  green: '#2E7D32', emerald: '#50C878', sage: '#8FAE88', olive: '#808000',
+  moss: '#8A9A5B', forest: '#228B22', lime: '#AEEA00', mint: '#98FF98',
+  jade: '#00A86B', teal: '#008080', seafoam: '#93E9BE', hunter: '#355E3B',
+  avocado: '#568203', pistachio: '#93C572',
+  // Blues
+  blue: '#1565C0', navy: '#001F5B', midnight: '#1A1A2E', cobalt: '#0047AB',
+  royal: '#4169E1', sky: '#87CEEB', baby_blue: '#89CFF0', powder: '#B0E0E6',
+  aegean: '#2E86AB', cerulean: '#007BA7', indigo: '#4B0082', denim: '#1560BD',
+  steel: '#4682B4', french: '#0072BB', periwinkle: '#CCCCFF',
+  // Purples
+  purple: '#7B1FA2', violet: '#7F00FF', lavender: '#E6E6FA', lilac: '#C8A2C8',
+  mauve: '#E0B0FF', plum: '#4A0E5C', eggplant: '#614051', orchid: '#DA70D6',
+  amethyst: '#9966CC', grape: '#6F2DA8',
+  // Earth tones
+  clay: '#BD8269', adobe: '#CC6600', brick: '#CB4154', pumpkin: '#FF7518',
+}
+
+/**
+ * Resolve a human-readable colour name to a hex string.
+ * Strategy:
+ *   1. Exact match after normalisation (lowercase, spaces→underscore)
+ *   2. Partial-word match — first token of the name that hits the map
+ *   3. Deterministic HSL hash so every unknown name still gets a
+ *      consistent, visually distinct colour rather than grey.
+ */
+function resolveColorHex(name: string): string {
+  const key = name.toLowerCase().replace(/\s+/g, '_')
+
+  // 1. Exact
+  if (COLOR_MAP[key]) return COLOR_MAP[key]
+
+  // 2. Partial — check each word in the name
+  const words = key.split('_')
+  for (const word of words) {
+    if (COLOR_MAP[word]) return COLOR_MAP[word]
+  }
+  // Also check multi-word combos (e.g. "dusty rose" → "dusty_rose")
+  for (let len = words.length - 1; len >= 1; len--) {
+    for (let start = 0; start + len <= words.length; start++) {
+      const combo = words.slice(start, start + len).join('_')
+      if (COLOR_MAP[combo]) return COLOR_MAP[combo]
+    }
+  }
+
+  // 3. Deterministic hash → HSL colour so it's always distinct and non-grey
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  const hue = Math.abs(hash) % 360
+  return `hsl(${hue}, 55%, 55%)`
+}
+
+/**
  * Map the raw backend response (flat snake_case fields, string color_palette)
  * to the frontend Garment shape (nested location, ColorSwatch[] palette).
  *
@@ -253,7 +332,7 @@ function normaliseGarment(raw: any): Garment {
     .split(',')
     .map((s: string) => s.trim())
     .filter(Boolean)
-    .map((name: string) => ({ name, hex: '#888888' }))   // hex resolved by UI from name
+    .map((name: string) => ({ name, hex: resolveColorHex(name) }))
 
   const imageUrl: string = raw.image_url
     ? `${raw.image_url}`          // keep relative path; Vite proxy serves /uploads
@@ -439,8 +518,12 @@ export async function addAnnotation(
   note: string,
   tag: string
 ): Promise<{ success: boolean }> {
+  // Backend AnnotationCreate expects { garment_id: int, tag: str, note: str }
+  // The frontend Garment.id is a string; cast to int before sending.
+  const garment_id = parseInt(id, 10)
+  if (isNaN(garment_id)) throw new Error(`Invalid garment id: "${id}"`)
   try {
-    const { data } = await client.post(`/annotations`, { id, note, tag })
+    const { data } = await client.post(`/annotations`, { garment_id, note, tag })
     return data
   } catch (err) {
     if (isMockMode(err)) return { success: true }
