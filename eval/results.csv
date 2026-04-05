@@ -1,0 +1,101 @@
+image,gt_garment_type,pred_garment_type,gt_style,pred_style,gt_material,pred_material,gt_pattern,pred_pattern,gt_season,pred_season,gt_occasion,pred_occasion
+pexels-173739006-11055477.jpg,wide-leg trousers,wide-leg trousers,,minimalist,,lightweight fabric (inferred),,solid,,all-season,,evening
+pexels-abubakar-mamman-2148132108-36571371.jpg,,peplum top and wide-leg trousers,,contemporary,,cotton (inferred),,solid,spring/summer,spring/summer,,everyday
+pexels-ahmet-arslan-1056407638-20636341.jpg,,blouse,,classic,silk charmeuse,silk,,solid,,all-season,,workwear
+pexels-alex-paz-619370337-17756597.jpg,,off-the-shoulder crop top and mini skirt,,bohemian,,lightweight cotton (inferred),,floral print,spring/summer,spring/summer,,everyday
+pexels-alparslan-uzun-606841680-19628602.jpg,,shearling jacket,,winter chic,,"shearling, knit",,plaid,autumn/winter,autumn/winter,,everyday
+pexels-alycia-fung-3866178-6616416.jpg,,cropped t-shirt and wide-leg trousers,streetwear,streetwear,,cotton jersey and lightweight cotton,,solid,,all-season,,everyday
+pexels-amani-nation-2839528-5585381.jpg,,hoodie,,streetwear,,cotton,tie-dye,tie-dye,,all-season,,everyday
+pexels-anna-keibalo-620756389-17891801.jpg,,cropped graphic tee and floral skirt,,streetwear,,cotton jersey and lightweight polyester,,graphic text and floral print,spring/summer,spring/summer,,everyday
+pexels-bestgeorgianfood-31071877.jpg,,"mini dress, blazer",minimalist,contemporary,,wool blend (inferred),,"pinstripe, solid",,autumn/winter,,everyday
+pexels-blue-bird-7242830.jpg,,activewear set,,athleisure,,technical nylon,,solid,,all-season,activewear,activewear
+pexels-bruno-henrike-99377918-34237917.jpg,,crop top,,minimalist,,technical fabric,,solid,,all-season,activewear,activewear
+pexels-centre-for-ageing-better-55954677-17153151.jpg,wrap dress,wrap dress,,romantic,,lightweight fabric (inferred),,floral print,,all-season,,evening
+pexels-cesar-o-neill-26650613-29242399.jpg,,activewear set,,athleisure,,technical knit,,solid with accents,,all-season,activewear,activewear
+pexels-chinarianphotographer-7048488.jpg,,denim jacket and jeans,,streetwear,heavyweight denim,denim,,solid,,all-season,,everyday
+pexels-christian-hitchcock-381015197-20143647.jpg,,robe,minimalist,minimalist,,lightweight cotton (inferred),,solid,,all-season,,everyday
+pexels-cottonbro-7762478.jpg,wide-leg trousers,wide-leg trousers,,minimalist,,cotton blend (inferred),,solid,,all-season,,everyday
+pexels-cottonbro-9634514.jpg,wide-leg trousers,blazer and wide-leg trousers,,minimalist,,structured wool blend (inferred),,solid,,autumn/winter,,workwear
+pexels-darina-belonogova-7520471.jpg,,slip dress,,minimalist,silk charmeuse,satin,,solid,,all-season,,evening
+pexels-david-fowora-2160297192-36771461.jpg,,satin blouse,,minimalist,silk charmeuse,satin,,solid,,all-season,,evening
+pexels-david-manzyk-253085053-19771924.jpg,,gown,,romantic,silk charmeuse,silk charmeuse,,solid,,all-season,,evening
+pexels-denigrafias-9440274.jpg,,bikini with cover-up,,bohemian,,lightweight cotton (inferred),,paisley,,resort,beachwear,beachwear
+pexels-dhanno-18976987.jpg,,kurta set,,ethnic,,cotton blend (inferred),jacquard,geometric and floral,,all-season,,everyday
+pexels-dhanno-20777181.jpg,,kurta set,,traditional,,cotton,jacquard,embroidered,,all-season,,festive
+pexels-dhanno-29413604.jpg,,kurta,,traditional,,silk (inferred),jacquard,floral print,,all-season,,festive
+pexels-dhanno-36387167.jpg,,kurta set,,traditional,,cotton (inferred),jacquard,floral embroidery,,all-season,,formal
+pexels-dhanno-36387171.jpg,,kurta set,,traditional,,cotton blend (inferred),jacquard,embroidered,,all-season,,cultural events
+pexels-dhanno-36552718.jpg,,kurta,,traditional,,lightweight cotton,jacquard,embroidered floral,,spring/summer,,festive
+pexels-dhanno-36567506.jpg,,embroidered kurta,,traditional,,cotton,jacquard,embroidered,,all-season,,festive
+pexels-dhanno-36567514.jpg,,kaftan,,romantic,,lightweight chiffon (inferred),jacquard,floral embroidery,,all-season,,evening
+pexels-edwin-ruiz-677923081-33717864.jpg,wrap dress,asymmetrical dress,,romantic,,lightweight chiffon,,solid,,spring/summer,,evening
+pexels-ekaterina-bolovtsova-6975939.jpg,,robe and camisole set,,minimalist,silk charmeuse,satin,,solid,,all-season,,everyday
+pexels-elvir-novruzov-2147880849-31694602.jpg,,wide-leg trousers,,minimalist,,wool (inferred),,solid,autumn/winter,autumn/winter,,everyday
+pexels-evlogia-pictures-3056207-29372556.jpg,wrap dress,maxi dress,,bohemian,,lightweight cotton (inferred),,solid,,spring/summer,,everyday
+pexels-filiamariss-9417042.jpg,,jumpsuit,,utility,,cotton,,solid,spring/summer,all-season,,everyday
+pexels-guillermo-berlin-1524368912-34896881.jpg,,slip dress,,minimalist,silk charmeuse,silk charmeuse,,solid,,spring/summer,,evening
+pexels-gustavo-fring-5523202.jpg,,leather vest,,streetwear,,"leather, shearling",,solid,autumn/winter,autumn/winter,,everyday
+pexels-hamidtajikph-5114506.jpg,,tailored coat,,classic,,wool (inferred),,solid,autumn/winter,autumn/winter,,everyday
+pexels-heyraiph-29051344.jpg,,"puffer jacket, graphic tee, denim jeans",streetwear,streetwear,,"quilted nylon, cotton jersey, denim",,"solid, graphic print",,autumn/winter,,everyday
+pexels-hoang-long-2148129452-29932002.jpg,,knit beanie and scarf,,casual,,wool,,nordic,autumn/winter,autumn/winter,,everyday
+pexels-innamykytas-7855366.jpg,,one-piece swimsuit,,pop art,,nylon spandex blend (inferred),,graphic print,,resort,beachwear,beachwear
+pexels-iv-image-ng-2153121910-34206388.jpg,wrap dress,wrap dress,,bohemian,,lightweight cotton (inferred),,floral print,,all-season,,everyday
+pexels-james-gana-324309608-13743872.jpg,,a-line dress,minimalist,eclectic,,cotton (inferred),,floral print,,spring/summer,,everyday
+pexels-john-hope-1863738930-28638565.jpg,,oversized denim jacket,,streetwear,heavyweight denim,heavyweight denim,,acid wash,,all-season,,everyday
+pexels-john-hope-1863738930-28638566.jpg,,hooded denim jacket and wide-leg jeans,,streetwear,heavyweight denim,denim,,faded wash,,all-season,,everyday
+pexels-jordy-neves-158520533-10754174.jpg,,one-piece swimsuit,,beachwear,,stretch nylon,,geometric print,,resort,beachwear,beachwear
+pexels-jorge-ortiz-1225704701-36647222.jpg,,denim jacket,,casual,heavyweight denim,heavyweight denim,,solid,,all-season,,everyday
+pexels-jose-martin-segura-benites-1422456152-27298416.jpg,,knee-high boots,minimalist,minimalist,,leather,,solid,,autumn/winter,,evening
+pexels-karola-g2-5643.jpg,,denim shorts,,casual,,denim,,solid,spring/summer,spring/summer,,everyday
+pexels-kashmir-creative-forever-481995968-15872769.jpg,,puffer jacket,,streetwear,,technical nylon,,geometric,autumn/winter,autumn/winter,,everyday
+pexels-kema-7631673.jpg,,crochet top and skirt,,bohemian,,crochet,,netted,,spring/summer,beachwear,beachwear
+pexels-khalifa-yahaya-650488521-36607476.jpg,,denim jacket and trousers,,streetwear,heavyweight denim,heavyweight denim,,geometric,,all-season,,everyday
+pexels-king-caplis-471600979-26797756.jpg,,oversized t-shirt,streetwear,streetwear,,cotton jersey (inferred),,graphic print,,all-season,,everyday
+pexels-lemkhanzar-6034452.jpg,,denim jacket,,streetwear,heavyweight denim,denim,,solid,,all-season,,everyday
+pexels-leticia-alvares-1805702-32922274.jpg,,blouse and wide-leg trousers,minimalist,minimalist,,cotton blend (inferred),,solid,,all-season,,workwear
+pexels-lucretius-mooka-2554524-20767590.jpg,,tank top and high-waisted shorts,,urban chic,,cotton blend (inferred),,striped,spring/summer,spring/summer,,everyday
+pexels-macjoy-penaredondo-17632248-10891668.jpg,,blouse and shirt,minimalist,contemporary romantic,,lightweight cotton (inferred),,floral and striped,,spring/summer,,everyday
+pexels-mafunga-36680477.jpg,,graphic tee and trousers,streetwear,streetwear,,cotton jersey (inferred),,graphic print,,all-season,,everyday
+pexels-mahyaddin-jabbarli-691063160-36790270.jpg,,long-sleeve top and wide-leg trousers,minimalist,contemporary,,jersey knit and wool blend (inferred),,solid and pinstripe,,autumn/winter,,everyday
+pexels-marceloverfe-30008493.jpg,,one-shoulder swimsuit and sarong,,bohemian,,stretch nylon (inferred),,solid and floral print,,resort,beachwear,beachwear
+pexels-mario-w-750012538-26955621.jpg,,shirt and shorts set,,streetwear,,lightweight cotton (inferred),,tropical floral print,spring/summer,spring/summer,,beachwear
+pexels-marrinson-palacios-cosme-348545890-14915398.jpg,wide-leg trousers,off-the-shoulder blouse and wide-leg trousers,,romantic,,lightweight cotton blend (inferred),,solid,,spring/summer,,everyday
+pexels-matazumultimedia-33811001.jpg,,kaftan,,bohemian,,lightweight cotton,tie-dye,tie-dye,,all-season,,everyday
+pexels-matvalina-18235047.jpg,,slip dress,,minimalist,silk charmeuse,satin,,solid,,all-season,,evening
+pexels-mauricio-casas-454804780-18532851.jpg,wide-leg trousers,oversized blouse and wide-leg trousers,,minimalist,,lightweight cotton (inferred),,solid,,all-season,,everyday
+pexels-mbkview-2158346170-36328440.jpg,,football jersey and wide-leg jeans,streetwear,streetwear,,polyester jersey and denim,,solid and plaid,,all-season,,everyday
+pexels-md-photography-2150970498-33429321.jpg,wrap dress,long-sleeve dress,,elegant,,cotton,,solid,,all-season,,workwear
+pexels-misho-chachanidze-29104578-11250594.jpg,,puffer jacket,,casual chic,,quilted polyester,,solid,autumn/winter,autumn/winter,,everyday
+pexels-mlourph-34817397.jpg,,slip dress,,romantic,silk charmeuse,silk charmeuse,,solid,,all-season,,evening
+pexels-mohammed-ajwad-4099998.jpg,,parka,,utility,,polyester blend (inferred),,herringbone,autumn/winter,autumn/winter,,everyday
+pexels-nadirvev-32285207.jpg,wide-leg trousers,"crop top, bomber jacket, wide-leg trousers",,streetwear,,"cotton jersey, denim",,solid,,all-season,,everyday
+pexels-neo-rioux-2386368-9489467.jpg,wide-leg trousers,cropped blouse and wide-leg trousers,,minimalist,,cotton eyelet and woven fabric,,eyelet and solid,,spring/summer,,everyday
+pexels-og-776567171-20419138.jpg,wrap dress,traditional dress,,cultural,,ankara cotton,,geometric and organic print,,all-season,,festive
+pexels-oluwakoreimage-15655832.jpg,,t-shirt,,bohemian,,cotton,tie-dye,tie-dye,,all-season,,everyday
+pexels-palumalerba-2850776.jpg,,sleeveless top and denim shorts,,bohemian,,cotton (inferred),,geometric print,spring/summer,spring/summer,,everyday
+pexels-pedrofurtadoo-29138805.jpg,,sports bra and leggings,,athleisure,,technical nylon,,solid,,all-season,activewear,activewear
+pexels-planeteelevene-3778170.jpg,,kaftan,,bohemian,,cotton (inferred),tie-dye,tie-dye,,spring/summer,,everyday
+pexels-platemedya-10979233.jpg,,tank top and leggings,,minimalist,,stretch jersey,,solid,,all-season,activewear,activewear
+pexels-pnw-prod-8980937.jpg,,sports bra,,activewear,,technical nylon (inferred),,solid,,all-season,activewear,activewear
+pexels-premsinghtanwar-25328645.jpg,,kaftan dress,,bohemian,,lightweight cotton,tie-dye,tie-dye,,spring/summer,,beachwear
+pexels-rajibahmed-18891039.jpg,wrap dress,wrap dress,,retro,,lightweight polyester (inferred),,geometric,,all-season,,everyday
+pexels-rayen-amraoui-2147805670-29911458.jpg,,camisole and midi skirt,,bohemian,,cotton (inferred),,floral print,spring/summer,spring/summer,,everyday
+pexels-rdne-7240194.jpg,,crop top and leggings,,activewear,,technical nylon,,solid,,all-season,activewear,activewear
+pexels-renato-marques-30985013-6956688.jpg,,wrap skirt,,bohemian,,lightweight cotton (inferred),,striped with cartoon motifs,,spring/summer,beachwear,beachwear
+pexels-reyna-montgomery-229756504-12093815.jpg,,denim jacket,,streetwear,heavyweight denim,lightweight denim,,solid,,all-season,,everyday
+pexels-rodrigo-tadielo-feksa-3156808-5688731.jpg,,kimono cover-up,,bohemian,,lightweight chiffon (inferred),,tropical floral print,,resort,beachwear,beachwear
+pexels-ron-lach-10240348.jpg,,denim jacket,,streetwear,heavyweight denim,heavyweight denim,,solid,,all-season,,everyday
+pexels-sakshi-patwa-3335937-6842752.jpg,,saree,,traditional,,silk,jacquard,jacquard,,all-season,,evening
+pexels-sasha-kim-8483321.jpg,,activewear set,,minimalist,,stretch knit,,solid,,all-season,activewear,activewear
+pexels-serdargoksu-29814516.jpg,wide-leg trousers,vest and wide-leg trousers,,retro chic,,wool blend,,solid,,all-season,,workwear
+pexels-shvetsa-4611823.jpg,,sweatshirt,minimalist,minimalist,,cotton,,solid,,all-season,,everyday
+pexels-slava-kol-2154185140-34189304.jpg,,faux fur coat,,vintage-inspired,,faux fur,,animal print,autumn/winter,autumn/winter,,everyday
+pexels-teddy-16214211.jpg,,varsity jacket,streetwear,streetwear,,technical nylon,,solid,,all-season,,everyday
+pexels-thirdman-8053672.jpg,wrap dress,wrap dress,,minimalist,,linen (inferred),,solid,,spring/summer,,everyday
+pexels-umar-faruq-1662051319-35129165.jpg,,maxi dress,,bohemian,,cotton,tie-dye,tie-dye,,spring/summer,,evening
+pexels-valdemarvan-30056730.jpg,,jacket,streetwear,streetwear,,"faux fur, cotton blend",,solid,,autumn/winter,,everyday
+pexels-vally-thutlwe-2777874-7741187.jpg,,windbreaker,streetwear,streetwear,,technical nylon,,solid with contrast accents,,all-season,,everyday
+pexels-victor-oluwayoju-1869509-12990714.jpg,,t-shirt,,streetwear,,cotton jersey (inferred),tie-dye,tie-dye,,all-season,,everyday
+pexels-vika-glitter-392079-13214713.jpg,,blouse and mini skirt,,bohemian,,lightweight cotton,,floral and striped,spring/summer,spring/summer,,everyday
+pexels-vika-glitter-392079-27401195.jpg,,beach cover-up,,glamorous,,sheer embellished fabric,,embellished,,resort,beachwear,beachwear
+pexels-yuliya-gvaladze-811018481-19318842.jpg,,"blazer, t-shirt",,bohemian,,cotton (inferred),tie-dye,tie-dye,,all-season,,everyday

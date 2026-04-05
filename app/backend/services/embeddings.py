@@ -29,7 +29,7 @@ from tenacity import (
     before_sleep_log,
 )
 
-from services.ai_classifier import AIServiceError
+from .ai_classifier import AIServiceError
 
 load_dotenv(override=True)
 logger = logging.getLogger(__name__)
