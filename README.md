@@ -554,6 +554,19 @@ The filesystem and the CSV `image` column must match exactly (case-sensitive). A
 
 ---
 
+# Limitations
+
+This prototype focuses on demonstrating the AI workflow rather than production-scale infrastructure.
+
+Limitations include:
+
+* limited evaluation dataset
+* heuristic parsing of model output
+* no authentication or multi-user support
+* simplified location inference
+
+---
+
 ## Improvements & Future Work
 
 This section outlines prioritised directions for maturing the system — spanning evaluation rigour, production hardening, and AI capability expansion.
