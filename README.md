@@ -382,3 +382,23 @@ Potential extensions include:
 This project demonstrates how multimodal AI models and vector search can transform unstructured image collections into a structured and searchable inspiration platform for fashion designers.
 
 By combining AI-generated metadata, semantic search, and human annotations, the system enables designers to **organize and revisit inspiration imagery more effectively.**
+
+### Model Evaluation Results
+
+| Attribute | Accuracy |
+|----------|----------|
+| garment_type | 0.0% |
+| material | 0.0% |
+
+
+### Model Evaluation Results
+
+| Attribute | Accuracy | Samples |
+|-----------|----------|---------|
+| garment_type | 75.0% | 16 |
+| style | 75.0% | 16 |
+| material | 93.75% | 16 |
+| pattern | 52.94% | 17 |
+| season | 94.74% | 19 |
+| occasion | 100.0% | 16 |
+
