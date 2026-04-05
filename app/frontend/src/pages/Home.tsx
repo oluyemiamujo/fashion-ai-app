@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from 'react'
-import { getImages, searchImages, getFilters } from '../api/api'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
+import { getImages, filterImages, getFilters } from '../api/api'
 import type { Garment, FilterOptions, SearchParams } from '../api/api'
 import ImageGrid from '../components/ImageGrid'
 import SearchBar from '../components/SearchBar'
@@ -7,13 +8,29 @@ import FiltersPanel from '../components/FiltersPanel'
 import UploadPanel from '../components/UploadPanel'
 
 export default function Home() {
-  const [garments, setGarments] = useState<Garment[]>([])
-  const [filters, setFilters] = useState<FilterOptions | null>(null)
+  const location = useLocation()
+  const [garments, setGarments]             = useState<Garment[]>([])
+  const [filters, setFilters]               = useState<FilterOptions | null>(null)
   const [selectedFilters, setSelectedFilters] = useState<Partial<SearchParams>>({})
-  const [searchQuery, setSearchQuery] = useState('')
-  const [loadingImages, setLoadingImages] = useState(true)
+  const [searchQuery, setSearchQuery]       = useState('')
+  const [loadingImages, setLoadingImages]   = useState(true)
   const [loadingFilters, setLoadingFilters] = useState(true)
-  const [showUpload, setShowUpload] = useState(false)
+  const [showUpload, setShowUpload]         = useState(false)
+  const [deletedToast, setDeletedToast]     = useState(false)
+
+  // Abort controller ref — cancels in-flight requests when params change
+  const abortRef = useRef<AbortController | null>(null)
+
+  // Show a brief success toast when navigated back after a delete
+  useEffect(() => {
+    if ((location.state as { deleted?: string } | null)?.deleted) {
+      setDeletedToast(true)
+      const t = setTimeout(() => setDeletedToast(false), 4000)
+      // Clear router state so a back/forward re-visit doesn't re-trigger
+      window.history.replaceState({}, '')
+      return () => clearTimeout(t)
+    }
+  }, [location.state])
 
   // Load filter options once
   useEffect(() => {
@@ -22,44 +39,89 @@ export default function Home() {
       .finally(() => setLoadingFilters(false))
   }, [])
 
-  // Reload images whenever search query or filters change
-  const fetchImages = useCallback((query: string, filters: Partial<SearchParams>) => {
-    setLoadingImages(true)
-    const load = query
-      ? searchImages(query)
-      : getImages(Object.keys(filters).length ? filters : undefined)
-    load
-      .then(result => setGarments(Array.isArray(result) ? result : []))
-      .finally(() => setLoadingImages(false))
-  }, [])
+  /**
+   * Single unified fetch that merges free-text query + structured filters.
+   * - No params at all      → GET /api/images   (full list)
+   * - Filters only          → GET /api/images/filter  (AND logic)
+   * - Query only            → GET /api/search   (semantic, via filterImages)
+   * - Query + filters       → GET /api/images/filter  (combined AND, via filterImages)
+   */
+  const fetchImages = useCallback(
+    (query: string, activeFilters: Partial<SearchParams>) => {
+      // Cancel any previous in-flight fetch
+      abortRef.current?.abort()
+      abortRef.current = new AbortController()
 
+      setLoadingImages(true)
+
+      const hasQuery   = query.trim().length > 0
+      const filterKeys = Object.keys(activeFilters).filter(
+        k => activeFilters[k as keyof SearchParams]
+      )
+      const hasFilters = filterKeys.length > 0
+
+      const load: Promise<Garment[]> =
+        hasQuery || hasFilters
+          ? filterImages({ ...activeFilters, ...(hasQuery ? { q: query.trim() } : {}) })
+          : getImages()
+
+      load
+        .then(result => setGarments(Array.isArray(result) ? result : []))
+        .catch(err => {
+          // Ignore aborted requests
+          if (err?.code === 'ERR_CANCELED') return
+          console.error('Failed to load garments:', err)
+          setGarments([])
+        })
+        .finally(() => setLoadingImages(false))
+    },
+    []
+  )
+
+  // Re-fetch whenever the search query or filter selection changes
   useEffect(() => {
     fetchImages(searchQuery, selectedFilters)
   }, [searchQuery, selectedFilters, fetchImages])
 
+  // Search updates query; filters are preserved so they work together
   function handleSearch(q: string) {
     setSearchQuery(q)
-    setSelectedFilters({})       // filters reset when a new search runs
   }
 
+  // Clear resets everything
   function handleClear() {
     setSearchQuery('')
     setSelectedFilters({})
   }
 
+  // Filter change preserves current search query
   function handleFilterChange(f: Partial<SearchParams>) {
     setSelectedFilters(f)
   }
 
+  // Prepend newly uploaded garment and close the panel
   function handleUploadSuccess(garment: Garment) {
     setGarments(prev => [garment, ...(Array.isArray(prev) ? prev : [])])
     setShowUpload(false)
   }
 
+
+
   const activeFilterCount = Object.values(selectedFilters).filter(Boolean).length
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
+
+      {/* ── Deleted toast ──────────────────────────────────────────── */}
+      {deletedToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5
+                        px-5 py-3 rounded-2xl bg-gray-900 text-white text-sm shadow-xl animate-fade-in">
+          <svg className="w-4 h-4 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          Garment deleted successfully
+        </div>
+      )}
 
       {/* ── Top Navigation ─────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">

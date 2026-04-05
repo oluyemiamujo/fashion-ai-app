@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getImageDetails } from '../api/api'
+import { getImageDetails, deleteImage } from '../api/api'
 import type { Garment } from '../api/api'
 import AnnotationPanel from '../components/AnnotationPanel'
 
@@ -32,9 +32,12 @@ function AttributeRow({ label, value }: { label: string; value: string }) {
 export default function ImageDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [garment, setGarment] = useState<Garment | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [garment, setGarment]           = useState<Garment | null>(null)
+  const [loading, setLoading]           = useState(true)
+  const [error, setError]               = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting]         = useState(false)
+  const [deleteError, setDeleteError]   = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -44,6 +47,20 @@ export default function ImageDetail() {
       .catch(() => setError('Could not load garment details.'))
       .finally(() => setLoading(false))
   }, [id])
+
+  async function handleDelete() {
+    if (!garment) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteImage(garment.id)
+      navigate('/', { state: { deleted: garment.id } })
+    } catch {
+      setDeleteError('Delete failed. Please try again.')
+      setDeleting(false)
+      setConfirmDelete(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -75,16 +92,68 @@ export default function ImageDetail() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Back */}
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-6 transition"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Library
-        </button>
+        {/* Top bar — back + delete */}
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Library
+          </button>
+
+          {/* Delete controls */}
+          <div className="flex items-center gap-3">
+            {deleteError && (
+              <p className="text-xs text-red-500">{deleteError}</p>
+            )}
+            {confirmDelete ? (
+              <>
+                <span className="text-sm text-gray-500">Delete this garment?</span>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={deleting}
+                  className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600
+                             hover:border-gray-300 transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-red-600
+                             hover:bg-red-700 text-white font-medium transition disabled:opacity-50"
+                >
+                  {deleting ? (
+                    <>
+                      <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                      </svg>
+                      Deleting…
+                    </>
+                  ) : (
+                    'Yes, delete'
+                  )}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-red-200
+                           text-red-600 hover:bg-red-50 hover:border-red-300 transition"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete Image
+              </button>
+            )}
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left — Image */}
