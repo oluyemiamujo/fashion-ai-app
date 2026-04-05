@@ -19,6 +19,7 @@ An AI-powered web application that helps fashion designers organise, search, and
 11. [API Reference](#api-reference)
 12. [Testing](#testing)
 13. [Troubleshooting](#troubleshooting)
+14. [Improvements & Future Work](#improvements--future-work)
 
 ---
 
@@ -550,3 +551,87 @@ Both the backend (port 8000) and the Vite dev server (port 5173) must be running
 
 **Filename case mismatches (Linux / macOS)**  
 The filesystem and the CSV `image` column must match exactly (case-sensitive). Always regenerate the CSV with `generate_ground_truth.py` rather than editing it by hand — it reads filenames directly from the filesystem.
+
+---
+
+## Improvements & Future Work
+
+This section outlines prioritised directions for maturing the system — spanning evaluation rigour, production hardening, and AI capability expansion.
+
+---
+
+### 1. Evaluation Improvements
+
+#### Ground-Truth Dataset Expansion
+- Grow the labelled dataset beyond the current sample set to achieve statistically significant accuracy measurements (target ≥ 500 images across all garment types and styles).
+- Source diverse inputs: editorial photography, street photography, catalogue scans, and runway imagery to reduce distributional bias in the evaluation set.
+- Introduce multi-annotator labelling with inter-annotator agreement scores (Cohen's κ) to validate label quality before including samples in the ground-truth CSV.
+
+#### Data Augmentation for Evaluation Robustness
+- Apply controlled image perturbations (rotation, brightness shift, JPEG compression artefacts, cropping) to existing ground-truth samples and verify that model predictions remain stable — surfacing brittleness before it reaches production.
+- Test with low-quality or partially obscured images to define a reliability boundary for the classification service.
+
+#### Semantic Similarity Checks
+- Replace strict string-equality scoring for free-text fields (`trend_notes`, `consumer_profile`, `description`) with embedding-based semantic similarity (e.g., cosine similarity of `text-embedding-3-small` representations), so near-synonym outputs are not penalised as hard misses.
+- Extend `_NORM_TABLE` maintenance with a semi-automated synonym discovery step: cluster all observed model outputs per field and surface cluster centroids for manual review.
+
+#### Metrics Tracking & Automated Reporting
+- Persist per-run evaluation results to a time-series store (e.g., a lightweight SQLite table or CSV append log) so accuracy trends can be tracked across model version upgrades or prompt changes.
+- Generate a structured HTML or Markdown evaluation report as a CI artefact on every evaluation run — including per-field accuracy, overall accuracy, failure examples, and a diff against the previous run.
+- Set automated quality gates: block deployments if overall accuracy drops more than 3 percentage points from the baseline.
+
+---
+
+### 2. System & Production Improvements
+
+#### Scalability
+- **Database**: Migrate from SQLite to PostgreSQL for concurrent write support, full-text search (`tsvector`), and connection pooling via `pgBouncer`. SQLite is appropriate for single-user local use but becomes a bottleneck under concurrent uploads.
+- **Embedding search**: Replace the in-Python cosine similarity loop with a dedicated vector store (e.g., pgvector extension, Pinecone, or Qdrant) to support millisecond-latency semantic search across tens of thousands of garments without loading all embeddings into memory.
+- **File storage**: Replace the local `uploads/` directory with object storage (AWS S3 / GCS) and serve images via signed URLs or a CDN — decoupling storage from compute and enabling horizontal scaling of the backend.
+- **Async processing**: Move AI classification and embedding generation off the upload request path using a task queue (Celery + Redis or FastAPI `BackgroundTasks`). Return a `job_id` immediately; poll or receive a webhook when classification is complete. This prevents upload timeouts on slow network or API latency spikes.
+
+#### Reliability
+- **Structured error handling**: Introduce a consistent error response envelope `{ error: { code, message, detail } }` across all API endpoints, replacing ad-hoc HTTP exception raises.
+- **Retry with circuit breaker**: Wrap all OpenAI API calls in a circuit breaker (e.g., `tenacity` with `circuit_breaker` semantics) so a sustained outage degrades gracefully (e.g., stores the image without metadata and queues it for later re-classification) rather than failing the upload entirely.
+- **Database migrations**: Introduce Alembic for schema migration management. The current `Base.metadata.create_all()` approach has no upgrade/downgrade path — a problem as the schema evolves.
+- **Backup strategy**: For production SQLite deployments, implement automated daily snapshots via `VACUUM INTO` to a secondary location. For PostgreSQL, use `pg_dump` scheduled via cron or a managed backup service.
+
+#### Performance & Caching
+- Cache `GET /api/filters` responses in-process (e.g., with `functools.lru_cache` or a short-lived Redis TTL) — the filter values change only on upload or delete, making them safe to cache for 60 seconds.
+- Cache embedding lookups: if the same image hash is uploaded twice, skip re-classification and reuse the stored embedding.
+- Add database indexes on high-cardinality filter columns (`garment_type`, `style`, `season`, `occasion`) to keep filtered queries fast as the dataset grows.
+- Lazy-load the full embedding matrix only when search is invoked, and invalidate the cache on any upload or delete.
+
+#### Containerisation & CI/CD
+- **Docker**: Provide a `Dockerfile` for the backend (Python 3.11, `uv`-based install) and a multi-stage `Dockerfile` for the frontend (Node build stage → Nginx serve stage). Compose both with `docker-compose.yml` for one-command local startup.
+- **Kubernetes**: For team or cloud deployments, define Kubernetes manifests (Deployment, Service, HPA) to enable auto-scaling the backend under variable upload load.
+- **CI/CD pipeline**: Implement a GitHub Actions workflow that runs `pytest`, the evaluation pipeline, and a Lighthouse accessibility audit on every pull request — blocking merges on regression.
+
+---
+
+### 3. AI & Advanced Features
+
+#### LLM-Enhanced Annotation Suggestions
+- Surface GPT-4o-generated annotation suggestions directly in the `AnnotationPanel` UI: when a user opens an image, pre-populate suggested tags and notes derived from the AI description already stored in the database — reducing annotation effort to confirmation rather than free-text entry.
+- Allow designers to ask free-form questions about a garment ("What SS26 trends does this align with?") and receive a grounded response generated from the stored metadata, similar to a document Q&A interface.
+
+#### Retrieval-Augmented Generation (RAG) for Semantic Search
+- Implement a RAG pipeline where a natural-language query is first used to retrieve the top-K most similar garments (via embedding search), and then a language model synthesises a structured answer from the retrieved metadata — e.g., "Here are the three closest matches to your query and why they align."
+- Extend RAG to the annotation workflow: before saving a new annotation, retrieve semantically similar garments and display their existing annotations as context, promoting vocabulary consistency across the collection.
+- Store annotations in the vector index alongside garment embeddings so free-text notes become searchable via the same semantic search interface.
+
+#### Multimodal & Cross-Modal Search
+- Enable image-to-image search: encode an uploaded or pasted query image with a CLIP-style encoder and retrieve visually similar garments from the collection, complementing the existing text-based semantic search.
+- Allow combined queries: "show me something like [image] but in a minimalist style" — fusing visual similarity with text-filter constraints.
+
+#### Active Learning & Continuous Improvement
+- Log cases where the model's garment type or style prediction is manually corrected via the annotation panel. Surface these as candidate fine-tuning examples, enabling periodic supervised fine-tuning of the classification prompt or a downstream classifier.
+- Implement a confidence score for each classified field (derived from GPT-4o logprob output or a secondary verification pass) and surface low-confidence predictions to users for review rather than treating all classifications as equally reliable.
+
+#### Trend Intelligence Layer
+- Aggregate `trend_notes` and `style` fields across the collection and use an LLM to generate periodic trend briefings (e.g., "This week's uploads suggest a strong shift toward relaxed tailoring and earthy tones").
+- Export trend summaries as PDF or Markdown reports suitable for stakeholder presentations.
+
+---
+
+*These improvements are ordered roughly by implementation complexity and business impact. Items in §1 (Evaluation) and the reliability sub-section of §2 are recommended as the highest-priority near-term investments, as they directly underpin trustworthiness of the AI pipeline in a production context.*
